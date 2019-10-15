@@ -65,7 +65,7 @@ constexpr char kAddOpsRewriteTag[] =
 constexpr char kMinimizeBroadcastsTag[] =
     "_grappler_ArithmeticOptimizer_MinimizeBroadcasts";
 
-// Extract values from a Const op to `values`. Returns true if succeeds.
+// Extract values from a Const op to `values`. Returns true if successful.
 template <typename T>
 bool ValuesFromConstNode(const NodeDef& node, std::vector<T>* values) {
   if (node.op() != "Const") {
