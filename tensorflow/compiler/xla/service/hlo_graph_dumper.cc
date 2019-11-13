@@ -440,22 +440,16 @@ string HloDotDumper::Dump() {
 }
 
 string HloDotDumper::DumpWithVersion(int dump_version) {
-  LOG(INFO) << "222cathy string HloDotDumper::Dump()";
   string body;
-  LOG(INFO) << "222cathy StrAppend(&body, DumpWithVersionComputation(computation_));";
   //StrAppend(&body, DumpComputation(computation_));
   StrAppend(&body, DumpWithVersionComputation(computation_, dump_version));
-  LOG(INFO) << "222cathy StrAppend(&body, DumpRootTag());";
   StrAppend(&body, DumpRootTag());
 
   // By contract, Header() and Footer() have to be called after we've dumped all
   // our instructions, because they use state generated during that process.
   string g = Header();
-  LOG(INFO) << "222cathy StrAppend(&g, body);";
   StrAppend(&g, body);
-  LOG(INFO) << "222cathy StrAppend(&g, Footer());";
   StrAppend(&g, Footer());
-  LOG(INFO) << "222cathy string HloDotDumper::Dump() end";
   return g;
 }
 
@@ -482,8 +476,7 @@ stylesheet=<
 
 )";
 
-  //VLOG(3) << "Generating Header";
-  LOG(INFO) << "222cathy Generating Header";
+  VLOG(3) << "Generating Header";
 
   string graph_label =
       StrCat(label_, "<br/>Computation ", computation_->name());
@@ -536,7 +529,7 @@ stylesheet=<
     int64 from_node_id =
         tensorflow::gtl::FindWithDefault(node_ids_, from_node, -1);
     if (from_node_id == -1) {
-      LOG(ERROR) << from_node->name() << " was added to edges but not to nodes 333cathy";
+      LOG(ERROR) << from_node->name() << " was added to edges but not to nodes";
       continue;
       //LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
     }
@@ -551,12 +544,10 @@ stylesheet=<
     add_hover_css_rule("node", to_node_id, kRed);
 
     if (to_node) {
-      //VLOG(3) << "Adding css for edge " << edge_id << " from node "
-      LOG(INFO) << "222cathy HloDotDumper::Header Adding css for edge " << edge_id << " from node "
+      VLOG(3) << "Adding css for edge " << edge_id << " from node "
               << from_node->name() << " to node " << to_node->name();
     } else {
-      //VLOG(3) << "Adding css for edge " << edge_id << " from node "
-      LOG(INFO) << "222cathy HloDotDumper::Header Adding css for edge " << edge_id << " from node "
+      VLOG(3) << "Adding css for edge " << edge_id << " from node "
               << from_node->name() << " to root tag";
     }
 
@@ -612,15 +603,13 @@ bool HloDotDumper::ShouldShowSubcomputation(const HloComputation* subcomp) {
 
 string HloDotDumper::DumpSubcomputation(const HloComputation* subcomp,
                                         const HloInstruction* parent_instr) {
-  LOG(INFO) << "222cathy Dumping subcomputation " << subcomp->name();
   //VLOG(2) << "Dumping subcomputation " << subcomp->name();
   // Add an edge from the subcomputation to its parent node.  If subcomp
   // belongs to a fusion node, it's drawn in place of the fusion instruction,
   // so there's no need to link those.
   if (parent_instr->opcode() != HloOpcode::kFusion) {
     const HloInstruction* from = GetNodeForEdge(subcomp->root_instruction());
-    //VLOG(2) << "Edge: from " << from->name() << " to " << parent_instr->name()
-    LOG(INFO) << "222cathy subcomputation Edge: from " << from->name() << " to " << parent_instr->name()
+    VLOG(2) << "Edge: from " << from->name() << " to " << parent_instr->name()
             << " as " << next_edge_id_;
     edge_ids_.insert({{from, parent_instr}, next_edge_id_++});
     constexpr char edge_fmt[] =
@@ -697,24 +686,19 @@ tooltip = " ";
 
 string HloDotDumper::DumpComputation(const HloComputation* comp) {
   string g;
-  LOG(INFO) << "222cathy DumpComputation comp " << comp->name();
   for (const auto* instr : comp->instructions()) {
-    LOG(INFO) << "222cathy comp->instructions(): instr " << instr->name() << " in comp " << comp->name();
     if (!filter_.Show(instr)) {
       continue;
     }
 
     // Dump subcomputations within instr.
     for (const HloComputation* subcomp : instr->called_computations()) {
-      LOG(INFO) << "222cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
       if (ShouldShowSubcomputation(subcomp)) {
         StrAppend(&g, DumpSubcomputation(subcomp, instr));
       }
     }
-    LOG(INFO) << "222cathy comp->instructions(): instr end" << instr->name() << " in comp " << comp->name();
     StrAppend(&g, DumpInstruction(instr));
   }
-  LOG(INFO) << "222cathy DumpComputation comp end " << comp->name();
   return g;
 }
 
@@ -727,7 +711,6 @@ string HloDotDumper::DumpEachFusion(const HloInstruction* instr) {
    //DumpEachInstr(instr, &g);
    // Dump subcomputations within instr.
    for (const HloComputation* subcomp : instr->called_computations()) {
-     LOG(INFO) << "333cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
      if (ShouldShowSubcomputation(subcomp)) {
        StrAppend(&body, DumpSubcomputation(subcomp, instr));
      }
@@ -748,7 +731,6 @@ string HloDotDumper::DumpEachFusion(const HloInstruction* instr) {
 void HloDotDumper::DumpEachInstr(const HloInstruction* instr, string *g){
   // Dump subcomputations within instr.
   for (const HloComputation* subcomp : instr->called_computations()) {
-    LOG(INFO) << "333cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
     if (ShouldShowSubcomputation(subcomp)) {
       StrAppend(g, DumpSubcomputation(subcomp, instr));
     }
@@ -763,7 +745,6 @@ void HloDotDumper::DumpEachInstr(const HloInstruction* instr, string *g){
 // 0: all kernels (default)
 string HloDotDumper::DumpWithVersionComputation(const HloComputation* comp, int dump_version) {
   string g;
-  LOG(INFO) << "333cathy DumpWithVersionComputation comp " << comp->name();
   for (const auto* instr : comp->instructions()) {
     if (dump_version == 1 && instr->name().find("fusion") == string::npos){
       if (!filter_.Show(instr)) {
@@ -785,7 +766,6 @@ string HloDotDumper::DumpWithVersionComputation(const HloComputation* comp, int 
       DumpEachInstr(instr, &g);
     }
   }
-  LOG(INFO) << "333cathy DumpComputation comp end " << comp->name();
   return g;
 }
 
@@ -814,12 +794,10 @@ string HloDotDumper::DumpRootTag() {
   string node_shape = "circle";
   ColorScheme color = kBrown;
 
-  //VLOG(2) << "Adding root tag as node " << next_node_id_;
-  LOG(INFO) << "222cathy DumpRootTag Adding root tag as node " << next_node_id_;
+  VLOG(2) << "Adding root tag as node " << next_node_id_;
   root_node_id_ = next_node_id_++;
 
-  //VLOG(2) << "Adding edge from " << from->name() << " to root tag as "
-  LOG(INFO) << "222cathy DumpRootTag Adding edge from " << from->name() << " to root tag as "
+  VLOG(2) << "Adding edge from " << from->name() << " to root tag as "
           << next_edge_id_;
   edge_ids_.insert({{from, to}, next_edge_id_++});
   edges_.push_back(StrFormat(R"(%s -> %s [tooltip=" "];)", from_id, to_id));
@@ -874,7 +852,6 @@ bool HloDotDumper::ShouldMergeIntoUsers(const HloInstruction* instr) const {
 string HloDotDumper::DumpInstruction(const HloInstruction* instr) {
   // We don't display constants or broadcasts of effective scalar constants
   // within fusions as separate nodes; they're merged into their users.
-  LOG(INFO) << "222cathy Dumping instruction " << instr->name();
   if (instr->opcode() == HloOpcode::kConstant ||
       IsFusedBroadcastOfConstantEffectiveScalar(instr)) {
     return "";
@@ -890,8 +867,7 @@ string HloDotDumper::DumpInstruction(const HloInstruction* instr) {
     return "";
   }
 
-  LOG(INFO) << "222cathy DumpInstruction Adding node " << instr->name() << " as " << next_node_id_;
-  //VLOG(2) << "Adding node " << instr->name() << " as " << next_node_id_;
+  VLOG(2) << "Adding node " << instr->name() << " as " << next_node_id_;
   node_ids_[instr] = next_node_id_++;
 
   ColorScheme color = GetInstructionColor(instr);
@@ -1309,8 +1285,7 @@ void HloDotDumper::AddInstructionIncomingEdges(const HloInstruction* instr) {
         ShouldMergeIntoUsers(from)) {
       return;
     }
-    //VLOG(2) << "Adding edge from " << from->name() << " to " << to->name()
-    LOG(INFO) << "222cathy AddInstructionIncomingEdges Adding edge from " << from->name() << " to " << to->name()
+    VLOG(2) << "Adding edge from " << from->name() << " to " << to->name()
             << " as " << next_edge_id_;
     edge_ids_.insert({{from, to}, next_edge_id_++});
 

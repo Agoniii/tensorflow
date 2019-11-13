@@ -149,8 +149,7 @@ void DumpToFileInDirImpl(string_view filename, string_view contents,
   }
 
   const string& dir = opts.dump_to;
-  LOG(INFO) << "222cathy Dumping " << filename << " to " << dir;
-  //VLOG(1) << "Dumping " << filename << " to " << dir;
+  VLOG(1) << "Dumping " << filename << " to " << dir;
 
   tensorflow::Env* env = tensorflow::Env::Default();
   // Two threads can race to observe the absence of the dump directory and
@@ -256,7 +255,6 @@ void DumpHloModuleImpl(const HloModule& module,
                        const HloExecutionProfile* profile, string_view suffix,
                        const CanonicalDebugOptions& opts, int dump_version=0) {
   string filename = FilenameFor(module, suffix);
-  LOG(INFO) << "222cathy DumpHloModuleImpl " << filename;
 
   if (opts.dump_as_text) {
     DumpToFileInDirOrStdoutImpl(StrCat(filename, ".txt"), module.ToString(),
