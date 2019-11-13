@@ -63,6 +63,19 @@ StatusOr<string> RenderGraph(
     const HloExecutionProfile* hlo_execution_profile = nullptr,
     bool show_backend_config = false);
 
+StatusOr<string> RenderGraphWithVersion(
+    const HloComputation& computation, absl::string_view label,
+    const DebugOptions& debug_options, RenderedGraphFormat format,
+    const HloExecutionProfile* hlo_execution_profile = nullptr,
+    bool show_backend_config = false, int dump_version=0); //cathy
+
+StatusOr<string> RenderGraphEachFusion(const HloComputation& computation,
+    absl::string_view label,
+    const DebugOptions& debug_options,
+    RenderedGraphFormat format,
+    const HloExecutionProfile* hlo_execution_profile,
+    const HloInstruction* instr,
+    bool show_backend_config= false); //cathy 
 // Like RenderGraph, but renders only nodes "near" the given node in the graph.
 //
 // The number of nodes dumped is controlled by the radius parameter, which

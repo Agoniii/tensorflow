@@ -320,6 +320,8 @@ class HloDotDumper {
         filter_(std::move(filter)) {}
 
   string Dump();
+  string DumpWithVersion(int dump_version); //cathy
+  string DumpEachFusion(const HloInstruction *instr); //cathy
 
  private:
   // Returns the dot graph identifier for the given instruction.
@@ -348,6 +350,9 @@ class HloDotDumper {
   string DumpSubcomputation(const HloComputation* subcomp,
                             const HloInstruction* parent_instr);
   string DumpComputation(const HloComputation* comp);
+  string DumpWithVersionComputation(const HloComputation* comp, int dump_version); //cathy
+  void DumpEachInstr(const HloInstruction* instr, string *g); //cathy
+
   string DumpRootTag();
   string DumpInstruction(const HloInstruction* instr);
   ColorScheme GetInstructionColor(const HloInstruction* instr);
@@ -434,6 +439,26 @@ string HloDotDumper::Dump() {
   return g;
 }
 
+string HloDotDumper::DumpWithVersion(int dump_version) {
+  LOG(INFO) << "222cathy string HloDotDumper::Dump()";
+  string body;
+  LOG(INFO) << "222cathy StrAppend(&body, DumpWithVersionComputation(computation_));";
+  //StrAppend(&body, DumpComputation(computation_));
+  StrAppend(&body, DumpWithVersionComputation(computation_, dump_version));
+  LOG(INFO) << "222cathy StrAppend(&body, DumpRootTag());";
+  StrAppend(&body, DumpRootTag());
+
+  // By contract, Header() and Footer() have to be called after we've dumped all
+  // our instructions, because they use state generated during that process.
+  string g = Header();
+  LOG(INFO) << "222cathy StrAppend(&g, body);";
+  StrAppend(&g, body);
+  LOG(INFO) << "222cathy StrAppend(&g, Footer());";
+  StrAppend(&g, Footer());
+  LOG(INFO) << "222cathy string HloDotDumper::Dump() end";
+  return g;
+}
+
 string HloDotDumper::Header() {
   constexpr char fmt[] = R"(digraph G {
 rankdir = TB;
@@ -457,7 +482,8 @@ stylesheet=<
 
 )";
 
-  VLOG(3) << "Generating Header";
+  //VLOG(3) << "Generating Header";
+  LOG(INFO) << "222cathy Generating Header";
 
   string graph_label =
       StrCat(label_, "<br/>Computation ", computation_->name());
@@ -510,7 +536,9 @@ stylesheet=<
     int64 from_node_id =
         tensorflow::gtl::FindWithDefault(node_ids_, from_node, -1);
     if (from_node_id == -1) {
-      LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
+      LOG(ERROR) << from_node->name() << " was added to edges but not to nodes 333cathy";
+      continue;
+      //LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
     }
     int64 to_node_id =
         to_node ? tensorflow::gtl::FindWithDefault(node_ids_, to_node, -1)
@@ -523,10 +551,12 @@ stylesheet=<
     add_hover_css_rule("node", to_node_id, kRed);
 
     if (to_node) {
-      VLOG(3) << "Adding css for edge " << edge_id << " from node "
+      //VLOG(3) << "Adding css for edge " << edge_id << " from node "
+      LOG(INFO) << "222cathy HloDotDumper::Header Adding css for edge " << edge_id << " from node "
               << from_node->name() << " to node " << to_node->name();
     } else {
-      VLOG(3) << "Adding css for edge " << edge_id << " from node "
+      //VLOG(3) << "Adding css for edge " << edge_id << " from node "
+      LOG(INFO) << "222cathy HloDotDumper::Header Adding css for edge " << edge_id << " from node "
               << from_node->name() << " to root tag";
     }
 
@@ -582,13 +612,15 @@ bool HloDotDumper::ShouldShowSubcomputation(const HloComputation* subcomp) {
 
 string HloDotDumper::DumpSubcomputation(const HloComputation* subcomp,
                                         const HloInstruction* parent_instr) {
-  VLOG(2) << "Dumping subcomputation " << subcomp->name();
+  LOG(INFO) << "222cathy Dumping subcomputation " << subcomp->name();
+  //VLOG(2) << "Dumping subcomputation " << subcomp->name();
   // Add an edge from the subcomputation to its parent node.  If subcomp
   // belongs to a fusion node, it's drawn in place of the fusion instruction,
   // so there's no need to link those.
   if (parent_instr->opcode() != HloOpcode::kFusion) {
     const HloInstruction* from = GetNodeForEdge(subcomp->root_instruction());
-    VLOG(2) << "Edge: from " << from->name() << " to " << parent_instr->name()
+    //VLOG(2) << "Edge: from " << from->name() << " to " << parent_instr->name()
+    LOG(INFO) << "222cathy subcomputation Edge: from " << from->name() << " to " << parent_instr->name()
             << " as " << next_edge_id_;
     edge_ids_.insert({{from, parent_instr}, next_edge_id_++});
     constexpr char edge_fmt[] =
@@ -649,6 +681,7 @@ string HloDotDumper::DumpSubcomputation(const HloComputation* subcomp,
   }
 
   string comp_body = DumpComputation(subcomp);
+  //string comp_body = DumpWithVersionComputation(subcomp);//cathy
 
   constexpr char computation_fmt[] = R"(subgraph %s {
 %s
@@ -664,20 +697,95 @@ tooltip = " ";
 
 string HloDotDumper::DumpComputation(const HloComputation* comp) {
   string g;
+  LOG(INFO) << "222cathy DumpComputation comp " << comp->name();
   for (const auto* instr : comp->instructions()) {
+    LOG(INFO) << "222cathy comp->instructions(): instr " << instr->name() << " in comp " << comp->name();
     if (!filter_.Show(instr)) {
       continue;
     }
 
     // Dump subcomputations within instr.
     for (const HloComputation* subcomp : instr->called_computations()) {
+      LOG(INFO) << "222cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
       if (ShouldShowSubcomputation(subcomp)) {
         StrAppend(&g, DumpSubcomputation(subcomp, instr));
       }
     }
-
+    LOG(INFO) << "222cathy comp->instructions(): instr end" << instr->name() << " in comp " << comp->name();
     StrAppend(&g, DumpInstruction(instr));
   }
+  LOG(INFO) << "222cathy DumpComputation comp end " << comp->name();
+  return g;
+}
+
+// cathy
+string HloDotDumper::DumpEachFusion(const HloInstruction* instr) {
+
+ string body;
+ //StrAppend(&body, DumpComputation(computation_));
+ if(instr->name().find("fusion") != string::npos) {
+   //DumpEachInstr(instr, &g);
+   // Dump subcomputations within instr.
+   for (const HloComputation* subcomp : instr->called_computations()) {
+     LOG(INFO) << "333cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
+     if (ShouldShowSubcomputation(subcomp)) {
+       StrAppend(&body, DumpSubcomputation(subcomp, instr));
+     }
+   }
+   StrAppend(&body, DumpInstruction(instr));
+ }
+ 
+ StrAppend(&body, DumpRootTag());
+
+ // By contract, Header() and Footer() have to be called after we've dumped all
+ // our instructions, because they use state generated during that process.
+ string g = Header();
+ StrAppend(&g, body);
+ StrAppend(&g, Footer());
+ return g;
+}
+
+void HloDotDumper::DumpEachInstr(const HloInstruction* instr, string *g){
+  // Dump subcomputations within instr.
+  for (const HloComputation* subcomp : instr->called_computations()) {
+    LOG(INFO) << "333cathy instr->called_computations(): subcomp " << subcomp->name() << " in instr " << instr->name();
+    if (ShouldShowSubcomputation(subcomp)) {
+      StrAppend(g, DumpSubcomputation(subcomp, instr));
+    }
+  }
+  StrAppend(g, DumpInstruction(instr));
+}
+
+//cathy
+// dump_version 
+// 1: ex_fusion kernels
+// 2: all fusion kernels
+// 0: all kernels (default)
+string HloDotDumper::DumpWithVersionComputation(const HloComputation* comp, int dump_version) {
+  string g;
+  LOG(INFO) << "333cathy DumpWithVersionComputation comp " << comp->name();
+  for (const auto* instr : comp->instructions()) {
+    if (dump_version == 1 && instr->name().find("fusion") == string::npos){
+      if (!filter_.Show(instr)) {
+        continue;
+      }
+      DumpEachInstr(instr, &g);
+    }
+
+    else if(dump_version == 2 && instr->name().find("fusion") != string::npos) {
+      if (!filter_.Show(instr)) {
+        continue;
+      }
+      DumpEachInstr(instr, &g);
+    }
+    else if(dump_version == 0) {
+      if (!filter_.Show(instr)) {
+        continue;
+      }
+      DumpEachInstr(instr, &g);
+    }
+  }
+  LOG(INFO) << "333cathy DumpComputation comp end " << comp->name();
   return g;
 }
 
@@ -706,10 +814,12 @@ string HloDotDumper::DumpRootTag() {
   string node_shape = "circle";
   ColorScheme color = kBrown;
 
-  VLOG(2) << "Adding root tag as node " << next_node_id_;
+  //VLOG(2) << "Adding root tag as node " << next_node_id_;
+  LOG(INFO) << "222cathy DumpRootTag Adding root tag as node " << next_node_id_;
   root_node_id_ = next_node_id_++;
 
-  VLOG(2) << "Adding edge from " << from->name() << " to root tag as "
+  //VLOG(2) << "Adding edge from " << from->name() << " to root tag as "
+  LOG(INFO) << "222cathy DumpRootTag Adding edge from " << from->name() << " to root tag as "
           << next_edge_id_;
   edge_ids_.insert({{from, to}, next_edge_id_++});
   edges_.push_back(StrFormat(R"(%s -> %s [tooltip=" "];)", from_id, to_id));
@@ -764,6 +874,7 @@ bool HloDotDumper::ShouldMergeIntoUsers(const HloInstruction* instr) const {
 string HloDotDumper::DumpInstruction(const HloInstruction* instr) {
   // We don't display constants or broadcasts of effective scalar constants
   // within fusions as separate nodes; they're merged into their users.
+  LOG(INFO) << "222cathy Dumping instruction " << instr->name();
   if (instr->opcode() == HloOpcode::kConstant ||
       IsFusedBroadcastOfConstantEffectiveScalar(instr)) {
     return "";
@@ -779,7 +890,8 @@ string HloDotDumper::DumpInstruction(const HloInstruction* instr) {
     return "";
   }
 
-  VLOG(2) << "Adding node " << instr->name() << " as " << next_node_id_;
+  LOG(INFO) << "222cathy DumpInstruction Adding node " << instr->name() << " as " << next_node_id_;
+  //VLOG(2) << "Adding node " << instr->name() << " as " << next_node_id_;
   node_ids_[instr] = next_node_id_++;
 
   ColorScheme color = GetInstructionColor(instr);
@@ -1197,7 +1309,8 @@ void HloDotDumper::AddInstructionIncomingEdges(const HloInstruction* instr) {
         ShouldMergeIntoUsers(from)) {
       return;
     }
-    VLOG(2) << "Adding edge from " << from->name() << " to " << to->name()
+    //VLOG(2) << "Adding edge from " << from->name() << " to " << to->name()
+    LOG(INFO) << "222cathy AddInstructionIncomingEdges Adding edge from " << from->name() << " to " << to->name()
             << " as " << next_edge_id_;
     edge_ids_.insert({{from, to}, next_edge_id_++});
 
@@ -1606,6 +1719,52 @@ StatusOr<string> RenderGraph(const HloComputation& computation,
       HloDotDumper(&computation, label, debug_options, show_backend_config,
                    hlo_execution_profile, NodeFilter())
           .Dump();
+  return WrapDotInFormat(rendered_dot, format);
+}
+
+//cathy
+StatusOr<string> RenderGraphWithVersion(const HloComputation& computation,
+                             absl::string_view label,
+                             const DebugOptions& debug_options,
+                             RenderedGraphFormat format,
+                             const HloExecutionProfile* hlo_execution_profile,
+                             bool show_backend_config, int dump_version) {
+  tensorflow::mutex_lock lock(url_renderer_mu);
+  if (format == RenderedGraphFormat::kUrl && url_renderer == nullptr) {
+    return Unavailable("Can't render as URL; no URL renderer was registered.");
+  }
+
+  string rendered_dot =
+      HloDotDumper(/*computation=*/&computation, 
+                   /*label=*/label,
+                   /*debug_options=*/debug_options, 
+                   /*show_backend_config=*/show_backend_config,
+                   /*profile=*/hlo_execution_profile, 
+                   /*filter=*/NodeFilter())
+          .DumpWithVersion(dump_version);
+  return WrapDotInFormat(rendered_dot, format);
+}
+
+//cathy
+StatusOr<string> RenderGraphEachFusion(const HloComputation& computation,
+                             absl::string_view label,
+                             const DebugOptions& debug_options,
+                             RenderedGraphFormat format,
+                             const HloExecutionProfile* hlo_execution_profile,
+                             const HloInstruction* instr,
+                             bool show_backend_config) {
+  tensorflow::mutex_lock lock(url_renderer_mu);
+  if (format == RenderedGraphFormat::kUrl && url_renderer == nullptr) {
+    return Unavailable("Can't render as URL; no URL renderer was registered.");
+  }
+  string rendered_dot =
+      HloDotDumper(/*computation=*/&computation, 
+                   /*label=*/label,
+                   /*debug_options=*/debug_options, 
+                   /*show_backend_config=*/show_backend_config,
+                   /*profile=*/hlo_execution_profile, 
+                   /*filter=*/NodeFilter())
+          .DumpEachFusion(instr);
   return WrapDotInFormat(rendered_dot, format);
 }
 

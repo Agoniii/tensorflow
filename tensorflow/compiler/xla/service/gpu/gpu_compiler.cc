@@ -39,6 +39,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/convolution_group_converter.h"
 #include "tensorflow/compiler/xla/service/dot_decomposer.h"
 #include "tensorflow/compiler/xla/service/dump.h"
+#include "tensorflow/compiler/xla/service/hlo_graph_dumper.h"
 #include "tensorflow/compiler/xla/service/dynamic_index_splitter.h"
 #include "tensorflow/compiler/xla/service/flatten_call_graph.h"
 #include "tensorflow/compiler/xla/service/gpu/cudnn_batchnorm_rewriter.h"
@@ -378,7 +379,9 @@ StatusOr<std::unique_ptr<Executable>> GpuCompiler::RunBackend(
           /*allocate_buffers_for_constants=*/true,
           /*colorer=*/BufferAssigner::DefaultColorer(),
           /*must_not_live_out=*/{}, GetCanShareBuffer()));
-  DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations");
+  DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations_exfusion", 1);
+  DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations_fusion", 2);
+  DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations.", 4);
 
   IrEmitterContext ir_emitter_context(
       module.get(), buffer_assignment.get(), stream_exec->platform(),

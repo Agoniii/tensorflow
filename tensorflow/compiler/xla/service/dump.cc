@@ -149,7 +149,8 @@ void DumpToFileInDirImpl(string_view filename, string_view contents,
   }
 
   const string& dir = opts.dump_to;
-  VLOG(1) << "Dumping " << filename << " to " << dir;
+  LOG(INFO) << "222cathy Dumping " << filename << " to " << dir;
+  //VLOG(1) << "Dumping " << filename << " to " << dir;
 
   tensorflow::Env* env = tensorflow::Env::Default();
   // Two threads can race to observe the absence of the dump directory and
@@ -187,11 +188,75 @@ void DumpToFileInDirOrStdoutImpl(string_view filename, string_view contents,
   DumpToFileInDirImpl(filename, contents, opts);
 }
 
-void DumpHloModuleImpl(const HloModule& module,
+//cathy
+void DumpHloModuleImplEachFusion(const HloModule& module,
                        const BufferAssignment* buffer_assn,
                        const HloExecutionProfile* profile, string_view suffix,
                        const CanonicalDebugOptions& opts) {
+  for (const auto* instr : module.entry_computation()->instructions()) {
+    if(instr->name().find("fusion") != string::npos) { 
+      string filename = StrCat(FilenameFor(module, suffix), instr->name());
+  
+      if (opts.dump_as_text) {
+        DumpToFileInDirOrStdoutImpl(StrCat(filename, ".txt"), module.ToString(),
+                                    opts);
+        if (buffer_assn) {
+          DumpToFileInDirOrStdoutImpl(StrCat(filename, "-buffer-assignment.txt"),
+                                      buffer_assn->ToString(), opts);
+        }
+      }
+  
+      if (opts.dump_as_proto) {
+        HloProto module_proto =
+            buffer_assn ? MakeHloProto(module, *buffer_assn) : MakeHloProto(module);
+        string pb;
+        if (!tensorflow::SerializeToStringDeterministic(module_proto, &pb)) {
+          pb = "Failed to serialize HLO module proto.";
+        }
+        DumpToFileInDirImpl(StrCat(filename, ".hlo.pb"), pb, opts);
+      }
+
+      auto render_graph = [&](RenderedGraphFormat format) {
+        StatusOr<string> rendered_graph = RenderGraphEachFusion(
+            *module.entry_computation(),
+            /*label=*/filename, module.config().debug_options(), format, profile, instr);
+        if (rendered_graph.ok()) {
+          return std::move(rendered_graph).ValueOrDie();
+        }
+        return StrFormat("Error rendering graph: %s",
+                         rendered_graph.status().ToString());
+      };
+
+      if (opts.dump_as_dot) {
+        DumpToFileInDirImpl(StrFormat("%s.dot", filename),
+                            render_graph(RenderedGraphFormat::kDot), opts);
+      }
+
+      if (opts.dump_as_html) {
+        DumpToFileInDirImpl(StrFormat("%s.html", filename),
+                            render_graph(RenderedGraphFormat::kHtml), opts);
+      }
+
+      // Special case for rendering graphs as URLs.  We'll dump them to a file
+      // because why not, but we always log them to stdout as well.
+      if (opts.dump_as_url) {
+        string url = render_graph(RenderedGraphFormat::kUrl);
+        std::cout << filename << " --> " << url << std::endl;
+        if (!opts.dumping_to_stdout()) {
+          DumpToFileInDirImpl(StrFormat("%s.url", filename), url, opts);
+        }
+      }
+    }
+  }
+}
+
+
+void DumpHloModuleImpl(const HloModule& module,
+                       const BufferAssignment* buffer_assn,
+                       const HloExecutionProfile* profile, string_view suffix,
+                       const CanonicalDebugOptions& opts, int dump_version=0) {
   string filename = FilenameFor(module, suffix);
+  LOG(INFO) << "222cathy DumpHloModuleImpl " << filename;
 
   if (opts.dump_as_text) {
     DumpToFileInDirOrStdoutImpl(StrCat(filename, ".txt"), module.ToString(),
@@ -213,9 +278,12 @@ void DumpHloModuleImpl(const HloModule& module,
   }
 
   auto render_graph = [&](RenderedGraphFormat format) {
-    StatusOr<string> rendered_graph = RenderGraph(
+    //StatusOr<string> rendered_graph = RenderGraph(
+    //    *module.entry_computation(),
+    //    /*label=*/filename, module.config().debug_options(), format, profile);
+    StatusOr<string> rendered_graph = RenderGraphWithVersion(
         *module.entry_computation(),
-        /*label=*/filename, module.config().debug_options(), format, profile);
+        /*label=*/filename, module.config().debug_options(), format, profile, false, dump_version);
     if (rendered_graph.ok()) {
       return std::move(rendered_graph).ValueOrDie();
     }
@@ -276,28 +344,32 @@ void DumpToFileInDirOrStdout(const HloModule& module, string_view suffix,
       CanonicalDebugOptions(module.config().debug_options()));
 }
 
-void DumpHloModuleIfEnabled(const HloModule& module, string_view name) {
+void DumpHloModuleIfEnabled(const HloModule& module, string_view name, int dump_version) {
   CanonicalDebugOptions opts(module.config().debug_options());
   if (opts.should_dump_module(module.name())) {
     DumpHloModuleImpl(module, /*buffer_assn=*/nullptr, /*profile=*/nullptr,
-                      name, opts);
+                      name, opts, dump_version);
   }
 }
 void DumpHloModuleIfEnabled(const HloModule& module,
                             const BufferAssignment& buffer_assn,
-                            string_view name) {
+                            string_view name, int dump_version) {
   CanonicalDebugOptions opts(module.config().debug_options());
   if (opts.should_dump_module(module.name())) {
-    DumpHloModuleImpl(module, &buffer_assn, /*profile=*/nullptr, name, opts);
+    if (dump_version==4) {
+      DumpHloModuleImplEachFusion(module, &buffer_assn, /*profile=*/nullptr, name, opts);
+    } else {    
+      DumpHloModuleImpl(module, &buffer_assn, /*profile=*/nullptr, name, opts, dump_version);
+    }
   }
 }
 
 void DumpHloModuleIfEnabled(const HloModule& module,
                             const HloExecutionProfile& profile,
-                            string_view name) {
+                            string_view name, int dump_version) {
   CanonicalDebugOptions opts(module.config().debug_options());
   if (opts.should_dump_module(module.name())) {
-    DumpHloModuleImpl(module, /*buffer_assn=*/nullptr, &profile, name, opts);
+    DumpHloModuleImpl(module, /*buffer_assn=*/nullptr, &profile, name, opts, dump_version);
   }
 }
 

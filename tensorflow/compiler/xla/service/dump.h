@@ -55,13 +55,20 @@ void DumpToFileInDirOrStdout(const HloModule& module,
 // If you pass an HloExecutionProfile, note that currently only DOT-based output
 // formats (i.e. --xla_dump_as_{dot,html,url}) are able to incorporate it into
 // their output.  Other formats will just ignore the profile.
-void DumpHloModuleIfEnabled(const HloModule& module, absl::string_view name);
+//
+// dump_version
+// 0: (default) all hlo graph dump
+// 1: only dump ex_fusion hlo graph in one file
+// 2: only dump all fusion hlo graph in one file
+// 3: dump ex_fusion kernels in diff files
+// 4: dump each fusion kernels in diff files
+void DumpHloModuleIfEnabled(const HloModule& module, absl::string_view name, int dump_version=0); //cathy
 void DumpHloModuleIfEnabled(const HloModule& module,
                             const BufferAssignment& buffer_assn,
-                            absl::string_view name);
+                            absl::string_view name, int dump_version=0); //cathy
 void DumpHloModuleIfEnabled(const HloModule& module,
                             const HloExecutionProfile& profile,
-                            absl::string_view name);
+                            absl::string_view name, int dump_version=0); //cathy
 
 // Dumps the given HLO module after running one HLO pass and before running
 // another, if that's enabled.
