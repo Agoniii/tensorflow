@@ -1,0 +1,385 @@
+Binary files tensorflow/__init__.pyc and ../tensorflow-r1.15/tensorflow/__init__.pyc differ
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: dump.cc.1
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: dump.cc.bak
+diff -r tensorflow/compiler/xla/service/dump.h ../tensorflow-r1.15/tensorflow/compiler/xla/service/dump.h
+58,65c58
+< //
+< // dump_version
+< // 0: (default) all hlo graph dump
+< // 1: only dump ex_fusion hlo graph in one file
+< // 2: only dump all fusion hlo graph in one file
+< // 3: dump ex_fusion kernels in diff files
+< // 4: dump each fusion kernels in diff files
+< void DumpHloModuleIfEnabled(const HloModule& module, absl::string_view name, int dump_version=0); //cathy
+---
+> void DumpHloModuleIfEnabled(const HloModule& module, absl::string_view name, int dump_version=0);
+68c61
+<                             absl::string_view name, int dump_version=0); //cathy
+---
+>                             absl::string_view name, int dump_version=0);
+71c64
+<                             absl::string_view name, int dump_version=0); //cathy
+---
+>                             absl::string_view name, int dump_version=0);
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: dump.h.1
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: dump.h.bak
+diff -r tensorflow/compiler/xla/service/gpu/gpu_compiler.cc ../tensorflow-r1.15/tensorflow/compiler/xla/service/gpu/gpu_compiler.cc
+383,384c383,384
+<   DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations_fusion", 2);
+<   DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations.", 4);
+---
+>   DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations_fusion", 2); //cathy
+>   DumpHloModuleIfEnabled(*module, *buffer_assignment, "after_optimizations.", 4); //cathy
+diff -r tensorflow/compiler/xla/service/hlo_graph_dumper.cc ../tensorflow-r1.15/tensorflow/compiler/xla/service/hlo_graph_dumper.cc
+340c340
+<   string Header();
+---
+>   string Header(int dump_version=0);
+450c450
+<   string g = Header();
+---
+>   string g = Header(dump_version);
+456c456
+< string HloDotDumper::Header() {
+---
+> string HloDotDumper::Header(int dump_version) {
+532,534c532,536
+<       LOG(ERROR) << from_node->name() << " was added to edges but not to nodes";
+<       continue;
+<       //LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
+---
+>       if( dump_version != 0) {
+>         continue; //cathy
+>       } else {
+>         LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
+>       }
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: hlo_graph_dumper.cc.1
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: hlo_graph_dumper.cc.2
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: hlo_graph_dumper.cc.bak
+diff -r tensorflow/compiler/xla/service/hlo_graph_dumper.h ../tensorflow-r1.15/tensorflow/compiler/xla/service/hlo_graph_dumper.h
+78c78
+<     bool show_backend_config= false); //cathy 
+---
+>     bool show_backend_config= false); 
+Only in ../tensorflow-r1.15/tensorflow/compiler/xla/service: hlo_graph_dumper.h.1
+diff -r tensorflow/core/common_runtime/direct_session.cc ../tensorflow-r1.15/tensorflow/core/common_runtime/direct_session.cc
+598a599
+>     LOG(INFO) << "000cathy run_state.collector.reset(new StepStatsCollector);";
+603a605
+>     LOG(INFO) << "000cathy profiler_session = ProfilerSession::Create();";
+diff -r tensorflow/core/kernels/cwise_ops.h ../tensorflow-r1.15/tensorflow/core/kernels/cwise_ops.h
+27a28
+> //#include "tensorflow/core/platform/logging.h"
+1236c1237
+<                   typename Functor::tin_type in1, bool* error);
+---
+>                   typename Functor::tin_type in1, bool* error, const std::string name);
+1241c1242
+<             typename Functor::tin_type in, bool* error);
+---
+>             typename Functor::tin_type in, bool* error, const std::string name);
+1246c1247
+<              typename Functor::tscalar_type scalar, bool* error);
+---
+>              typename Functor::tscalar_type scalar, bool* error, const std::string name);
+1259c1260
+<              bool* error);
+---
+>              bool* error, const std::string name);
+diff -r tensorflow/core/kernels/cwise_ops_common.h ../tensorflow-r1.15/tensorflow/core/kernels/cwise_ops_common.h
+93a94,95
+>     auto node_name = name();
+>     //LOG(INFO) << "111cathy BinaryOp Compute: " << node_name; //this
+126c128
+<             in1.template scalar<Tin>(), error_ptr);
+---
+>             in1.template scalar<Tin>(), error_ptr, node_name);
+131c133
+<             in1.template flat<Tin>(), error_ptr);
+---
+>             in1.template flat<Tin>(), error_ptr, node_name);
+135c137
+<             in1.template flat<Tin>(), error_ptr);
+---
+>             in1.template flat<Tin>(), error_ptr, node_name);
+143c145
+<           BCast::ToIndexArray<2>(bcast.y_bcast()), error_ptr);
+---
+>           BCast::ToIndexArray<2>(bcast.y_bcast()), error_ptr, node_name);
+150c152
+<           BCast::ToIndexArray<3>(bcast.y_bcast()), error_ptr);
+---
+>           BCast::ToIndexArray<3>(bcast.y_bcast()), error_ptr, node_name);
+157c159
+<           BCast::ToIndexArray<4>(bcast.y_bcast()), error_ptr);
+---
+>           BCast::ToIndexArray<4>(bcast.y_bcast()), error_ptr, node_name);
+164c166
+<           BCast::ToIndexArray<5>(bcast.y_bcast()), error_ptr);
+---
+>           BCast::ToIndexArray<5>(bcast.y_bcast()), error_ptr, node_name);
+301c303,304
+<                   typename Functor::tin_type in1, bool* error) {
+---
+>                   typename Functor::tin_type in1, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, false> operator: "<<name;
+307c310,311
+<             typename Functor::tin_type in, bool* error) {
+---
+>             typename Functor::tin_type in, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, false> Left: "<<name;
+320c324,325
+<              typename Functor::tscalar_type scalar, bool* error) {
+---
+>              typename Functor::tscalar_type scalar, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, false> right: "<<name; //this
+336c341,342
+<              bool* error) {
+---
+>              bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, false> BCast: "<<name;
+362c368,369
+<                   typename Functor::tin_type in1, bool* error) {
+---
+>                   typename Functor::tin_type in1, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, 2, false> operator: "<<name;
+368c375,376
+<             typename Functor::tin_type in, bool* error) {
+---
+>             typename Functor::tin_type in, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, 2, false> left: "<<name;
+381c389,390
+<              typename Functor::tscalar_type scalar, bool* error) {
+---
+>              typename Functor::tscalar_type scalar, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, 2, false> right: "<<name;
+417c426,427
+<              bool* error) {
+---
+>              bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, 2, false> BCast: " << name;
+507c517,518
+<                   typename Functor::tin_type in1, bool* error) {
+---
+>                   typename Functor::tin_type in1, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, true> operator: "<<name;
+513c524,525
+<             typename Functor::tin_type in, bool* error) {
+---
+>             typename Functor::tin_type in, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, true> left: "<<name;
+526c538,539
+<              typename Functor::tscalar_type scalar, bool* error) {
+---
+>              typename Functor::tscalar_type scalar, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, true> right: "<<name; //this
+542c555,556
+<              bool* error) {
+---
+>              bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy struct BinaryFunctor<CPUDevice, Functor, NDIMS, true> BCast: "<<name;
+Only in ../tensorflow-r1.15/tensorflow/core/kernels: cwise_ops_common.h.bak
+diff -r tensorflow/core/kernels/cwise_ops_gpu_common.cu.h ../tensorflow-r1.15/tensorflow/core/kernels/cwise_ops_gpu_common.cu.h
+53c53,54
+<                   typename Functor::tin_type in1, bool* error) {
+---
+>                   typename Functor::tin_type in1, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy BinaryFunctor<GPUDevice, Functor, NDIMS, has_errors> operator: "<<name; //this
+60c61,62
+<             typename Functor::tin_type in, bool* error) {
+---
+>             typename Functor::tin_type in, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy BinaryFunctor<GPUDevice, Functor, NDIMS, has_errors> left: "<< name;
+70c72,73
+<              typename Functor::tscalar_type scalar, bool* error) {
+---
+>              typename Functor::tscalar_type scalar, bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy BinaryFunctor<GPUDevice, Functor, NDIMS, has_errors> right: "<<name; //add this
+84c87,88
+<              bool* error) {
+---
+>              bool* error, const std::string name) {
+>     //LOG(INFO) << "111cathy BinaryFunctor<GPUDevice, Functor, NDIMS, has_errors> BCast: "<<name;//this
+Only in ../tensorflow-r1.15/tensorflow/core/kernels: cwise_ops_gpu_common.cu.h.bak
+diff -r tensorflow/core/kernels/matmul_op.cc ../tensorflow-r1.15/tensorflow/core/kernels/matmul_op.cc
+125c125,127
+<       std::vector<AlgorithmType>* algorithms, bool use_aututone, Tensor* out) {
+---
+>       std::vector<AlgorithmType>* algorithms, bool use_aututone, Tensor* out,
+>       const std::string name) {
+>     //LOG(INFO) << "111cathy LaunchMatMulBase::launch: " << name;
+168c170,171
+<                       se::blas::ProfileResult* output_profile) {
+---
+>                       se::blas::ProfileResult* output_profile, std::string name) {
+>     ////LOG(INFO) << "111cathy LaunchBlasGemv.compute";
+175c178
+<                              static_cast<T>(0.0), c, 1)
+---
+>                              static_cast<T>(0.0), c, 1, name)
+203c206,207
+<     se::blas::ProfileResult* output_profile) {
+---
+>     se::blas::ProfileResult* output_profile, std::string name) {
+>   ////LOG(INFO) << "111cathy LaunchBlasGemv<Eigen::half>::compute";
+258c262,264
+<       std::vector<int64>* algorithms, bool use_autotune, Tensor* out) {
+---
+>       std::vector<int64>* algorithms, bool use_autotune, Tensor* out,
+>       const std::string name) {
+> 
+274a281
+>     //LOG(INFO) << "111cathy struct LaunchMatMul<GPUDevice, T, true>::launch: " << name; // m=" << m << ", n=" << n << ", k=" << k;
+347c354
+<                                      a_ptr, b_ptr, &c_ptr, &profile_result);
+---
+>                                      a_ptr, b_ptr, &c_ptr, &profile_result, name);
+376a384,385
+>         //LOG(INFO) << "111cathy stream->ThenBlasGemmWithAlgorithm: " << name;
+> 
+405a415
+>         //LOG(INFO) << "111cathy LaunchBlasGemv<T>::Compute: " << name;
+408c418
+<                                    a_ptr, b_ptr, &c_ptr, nullptr);
+---
+>                                    a_ptr, b_ptr, &c_ptr, nullptr, name);
+410c420,421
+<         // Use C' = B' x A' (' stands for transpose)
+---
+>         // Use C' = B' x A' (' stands for transpose)  
+>         //LOG(INFO) << "111cathy stream->ThenBlasGemm: " << name;
+415c426
+<                                transpose_a ? m : k, 0.0f, &c_ptr, n)
+---
+>                                transpose_a ? m : k, 0.0f, &c_ptr, n, name)
+453a465,466
+>     auto node_name = name();
+>     //LOG(INFO) << "111cathy MatMulOp: " << node_name;
+515c528
+<           &out_float);
+---
+>           &out_float, node_name);
+520c533
+<           ctx, a, b, dim_pair, &algorithms_, use_autotune_, out);
+---
+>           ctx, a, b, dim_pair, &algorithms_, use_autotune_, out, node_name);
+Only in ../tensorflow-r1.15/tensorflow/core/kernels: matmul_op.cc.bak
+Only in tensorflow/core/platform/default: .device_tracer.cc.swp
+diff -r tensorflow/core/platform/default/device_tracer.cc ../tensorflow-r1.15/tensorflow/core/platform/default/device_tracer.cc
+354c354,355
+<   VLOG(1) << "DeviceTracer::Start";
+---
+>   LOG(INFO) << "000cathy DeviceTracer::Start";
+>   //VLOG(1) << "DeviceTracer::Start";
+369c370,371
+<   VLOG(1) << "DeviceTracer::Stop";
+---
+>   LOG(INFO) << "000cathy DeviceTracer::Stop";
+>   //VLOG(1) << "DeviceTracer::Stop";
+diff -r tensorflow/core/profiler/lib/profiler_session.cc ../tensorflow-r1.15/tensorflow/core/profiler/lib/profiler_session.cc
+45a46
+>   LOG(INFO) << "000cathy EventName: " << node_name;
+99a101
+>   LOG(INFO) << "000cathy ConvertRunMetadataToTraceEvent";
+Binary files tensorflow/python/__init__.pyc and ../tensorflow-r1.15/tensorflow/python/__init__.pyc differ
+Binary files tensorflow/python/platform/__init__.pyc and ../tensorflow-r1.15/tensorflow/python/platform/__init__.pyc differ
+Binary files tensorflow/python/platform/self_check.pyc and ../tensorflow-r1.15/tensorflow/python/platform/self_check.pyc differ
+Binary files tensorflow/python/pywrap_tensorflow.pyc and ../tensorflow-r1.15/tensorflow/python/pywrap_tensorflow.pyc differ
+diff -r tensorflow/stream_executor/stream.cc ../tensorflow-r1.15/tensorflow/stream_executor/stream.cc
+2713c2713,2721
+<                              DeviceMemory<float> *y, int incy) {
+---
+>                              DeviceMemory<float> *y, int incy, std::string name) {
+>   //LOG(INFO) << "111cathy matmul_op ThenBlasGemv: "<<name;
+>   //          << "(trans=" << ToVlogString(trans)  
+>   //          << ", m=" << ToVlogString(m) << ", n" << ToVlogString(n) 
+>   //          << ", alpha=" << ToVlogString(alpha) << ", a=" << ToVlogString(a) << ", lda=" << ToVlogString(lda)
+>   //          << ", x=" << ToVlogString(x) << ", incx=" << ToVlogString(incx) 
+>   //          << ", beta=" << ToVlogString(beta) << ", y=" << ToVlogString(y)
+>   //          << ", incy=" << ToVlogString(incy);
+> 
+2728c2736
+<                              double beta, DeviceMemory<double> *y, int incy) {
+---
+>                              double beta, DeviceMemory<double> *y, int incy, std::string name) {
+2746c2754
+<                              DeviceMemory<std::complex<float>> *y, int incy) {
+---
+>                              DeviceMemory<std::complex<float>> *y, int incy, std::string name) {
+2766c2774
+<                              DeviceMemory<std::complex<double>> *y, int incy) {
+---
+>                              DeviceMemory<std::complex<double>> *y, int incy, std::string name) {
+3641c3649
+<                              DeviceMemory<Eigen::half> *c, int ldc) {
+---
+>                              DeviceMemory<Eigen::half> *c, int ldc, std::string name) {
+3658c3666
+<                              DeviceMemory<float> *c, int ldc) {
+---
+>                              DeviceMemory<float> *c, int ldc, std::string name) {
+3661a3670,3676
+>   //LOG(INFO) << "111cathy matmul_op ThenBlasGemm: " << name;
+>   //          << "transa=" << ToVlogString(transa)  << ", transb=" << ToVlogString(transb)
+>   //          << ", m=" << ToVlogString(m) << ", n" << ToVlogString(n) << ", k" << ToVlogString(k)
+>   //          << ", alpha=" << ToVlogString(alpha) << ", a=" << ToVlogString(a) << ", b=" << ToVlogString(b)
+>   //          << ", ldb=" << ToVlogString(ldb) << ", beta=" << ToVlogString(beta) << ", c=" << ToVlogString(c)
+>   //          << ", ldc=" << ToVlogString(ldc);
+> 
+3674c3689,3690
+<                              double beta, DeviceMemory<double> *c, int ldc) {
+---
+>                              double beta, DeviceMemory<double> *c, int ldc,
+>                              std::string name) {
+3693c3709
+<                              DeviceMemory<std::complex<float>> *c, int ldc) {
+---
+>                              DeviceMemory<std::complex<float>> *c, int ldc, std::string name) {
+3714c3730
+<                              DeviceMemory<std::complex<double>> *c, int ldc) {
+---
+>                              DeviceMemory<std::complex<double>> *c, int ldc, std::string name) {
+Only in ../tensorflow-r1.15/tensorflow/stream_executor: stream.cc.bak
+diff -r tensorflow/stream_executor/stream.h ../tensorflow-r1.15/tensorflow/stream_executor/stream.h
+965c965
+<                        DeviceMemory<float> *y, int incy);
+---
+>                        DeviceMemory<float> *y, int incy, std::string name="");
+969c969
+<                        DeviceMemory<double> *y, int incy);
+---
+>                        DeviceMemory<double> *y, int incy, std::string name="");
+975c975,976
+<                        DeviceMemory<std::complex<float>> *y, int incy);
+---
+>                        DeviceMemory<std::complex<float>> *y, int incy,
+>                        std::string name="");
+981c982,983
+<                        DeviceMemory<std::complex<double>> *y, int incy);
+---
+>                        DeviceMemory<std::complex<double>> *y, int incy,
+>                        std::string name="");
+1300c1302
+<                                  int ldc);
+---
+>                                  int ldc, std::string name="");
+1305c1307,1308
+<                                  float beta, DeviceMemory<float> *c, int ldc);
+---
+>                                  float beta, DeviceMemory<float> *c, int ldc,
+>                                  std::string name="");
+1310c1313,1314
+<                                  double beta, DeviceMemory<double> *c, int ldc);
+---
+>                                  double beta, DeviceMemory<double> *c, int ldc, 
+>                                  std::string name="");
+1318c1322,1323
+<                                  DeviceMemory<std::complex<float>> *c, int ldc);
+---
+>                                  DeviceMemory<std::complex<float>> *c, int ldc, 
+>                                  std::string name="");
+1327c1332
+<                                  int ldc);
+---
+>                                  int ldc, std::string name="");
+Only in ../tensorflow-r1.15/tensorflow/stream_executor: stream.h.bak

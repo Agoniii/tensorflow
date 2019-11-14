@@ -529,8 +529,8 @@ stylesheet=<
     int64 from_node_id =
         tensorflow::gtl::FindWithDefault(node_ids_, from_node, -1);
     if (from_node_id == -1) {
-      LOG(ERROR) << from_node->name() << " was added to edges but not to nodes";
-      continue;
+      LOG(ERROR) << from_node->name() << " was added to edges but not to nodes, for dump each fusion kernel by cathy";
+      continue; //cathy
       //LOG(FATAL) << from_node->name() << " was added to edges but not to nodes";
     }
     int64 to_node_id =
