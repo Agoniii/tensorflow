@@ -1240,8 +1240,6 @@ Status FindKernelRegistration(
   *reg = nullptr;
   *was_attr_mismatch = false;
   // Label defaults to empty if not found in NodeDef.
-  // const string& label = GetNodeAttrString(node_attrs, kKernelAttr);
-  // modify by cathy
   const string& label = GetNodeAttrStringDependDevice(node_attrs,
                                                       device_type.type_string());
 
